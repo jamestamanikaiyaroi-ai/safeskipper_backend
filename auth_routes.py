@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 import os
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Header
 from fastapi.security import OAuth2PasswordRequestForm
 from jose import jwt, JWTError
 from passlib.context import CryptContext
@@ -58,10 +58,30 @@ def create_access_token(data: dict, expires_minutes: int = ACCESS_TOKEN_EXPIRE_M
     return jwt.encode(to_encode, JWT_SECRET, algorithm=ALGORITHM)
 
 
-def get_current_user(db: Session = Depends(get_db), token: str | None = None):
-    # For simplicity, we read token from query/header manually later; can be improved with OAuth2.
-    if token is None:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing token")
+def from fastapi import APIRouter, Depends, HTTPException, status, Header
+# ... existing imports ...
+
+# existing router, pwd_context, JWT_SECRET, etc. stay the same
+
+
+def get_current_user(
+    db: Session = Depends(get_db),
+    authorization: str | None = Header(default=None),
+):
+    if not authorization:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing Authorization header"
+        )
+
+    # Expect header: Authorization: Bearer <token>
+    parts = authorization.split()
+    if len(parts) != 2 or parts[0].lower() != "bearer":
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid Authorization header format",
+        )
+
+    token = parts[1]
 
     try:
         payload = jwt.decode(token, JWT_SECRET, algorithms=[ALGORITHM])
@@ -74,8 +94,6 @@ def get_current_user(db: Session = Depends(get_db), token: str | None = None):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
     return user
 
-
-@router.post("/register", response_model=UserOut)
 def register_user(user_in: UserCreate, db: Session = Depends(get_db)):
     # check if mobile already exists
     existing = db.query(User).filter(User.mobile_number == user_in.mobile_number).first()
@@ -107,3 +125,6 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
 
     token = create_access_token({"sub": str(user.id), "role": user.role})
     return Token(access_token=token)
+@router.get("/me", response_model=UserOut)
+def get_me(current_user=Depends(get_current_user)):
+    return current_user
