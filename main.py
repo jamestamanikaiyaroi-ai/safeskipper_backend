@@ -1,3 +1,4 @@
+from boats_routes import router as boats_router
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -28,3 +29,19 @@ def health():
 
 # Auth routes (mobile login)
 app.include_router(auth_router, prefix="/auth", tags=["auth"])
+app.include_router(boats_router, prefix="/boats", tags=["boats"])
+from auth_routes import router as auth_router
+from boats_routes import router as boats_router
+
+# ... Base.metadata.create_all and app definition ...
+
+@app.get("/")
+def root():
+    return {"message": "SafeSkipper backend running successfully"}
+
+@app.get("/health")
+def health():
+    return {"status": "ok"}
+
+app.include_router(auth_router, prefix="/auth", tags=["auth"])
+app.include_router(boats_router, prefix="/boats", tags=["boats"])
